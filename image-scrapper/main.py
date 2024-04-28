@@ -1,5 +1,9 @@
+import os
 from selectolax.parser import HTMLParser
 from httpx import get
+import logging
+
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def get_img_tags_for(term):
   if not term:
@@ -26,15 +30,27 @@ def get_high_res_img_url(img_node):
 
   return url_res
 
+def save_images(img_urls, dest_dir='images', tag=''):
+  for url in img_urls:
+    resp = get(url)
+    logging.info(f"Downloading {url}...")
+
+    file_name = url.split('/')[-1]
+
+    if not os.path.exists(dest_dir):
+      os.makedirs(dest_dir)
+    
+    with open(f"{dest_dir}/{tag}{file_name}.jpeg", "wb") as f:
+      f.write(resp.content)
+      logging.info(f"Saved {file_name}, with size {round(len(resp.content)/1024/1024,2)} MB.")
+
 if __name__ == '__main__':
-  img_nodes = get_img_tags_for('galaxy')
+  search_tag = "cat"
+  dest_dir = "images"
+
+  img_nodes = get_img_tags_for(search_tag)
   relevant_imgs = [i for i in img_nodes if filter_out_img(i.attrs['src'], ['base64', 'plus', 'profile', 'premium'])]
 
   all_img_urls = [get_high_res_img_url(i) for i in relevant_imgs]
-  print(all_img_urls)
   
-
-  # for u in relevant_imgs:
-  #   print(u)
-    
-  # print(len(relevant_imgs))
+  save_images(all_img_urls[:3], dest_dir, search_tag)
